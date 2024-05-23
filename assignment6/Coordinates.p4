@@ -92,10 +92,10 @@ struct metadata {
 
 // ___________________________________   Parser   ____________________________________
 
-parser ActionParser(packet_in packet,
-		    out headers hdr,
-		    inout metadata meta,
-		    inout standard_metadata_t standard_metadata) {
+parser WorldParser(packet_in packet,
+		   out headers hdr,
+		   inout metadata meta,
+		   inout standard_metadata_t standard_metadata) {
 
 	state start{
 		packet.extract(hdr.ethernet);
@@ -104,6 +104,100 @@ parser ActionParser(packet_in packet,
 	}
 }
 
+// ______________________________   Checksum Verification  ___________________________
+
+control WorldVerifyChecksum(inout headers hdr,
+                            inout metadata meta) {
+    apply { }
+}
+
 // ______________________________   Ingress Processing  ______________________________
 
+control WorldIngress(inout headers hdr,
+		     inout metadata meta,
+		     inout standard_metadata_t standard_metadata) {     
+	action switch_dest() {
+    		bit<48> tmp_mac;
+    		tmp_mac = hdr.ethernet.dstAddr;
+       		hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
+       		hdr.ethernet.srcAddr = tmp_mac;
+       	
+       		standard_metadata.egress_spec = standard_metadata.ingress_port;
+       	}
+       	//TODO: Get registers worked out then fill up these actions
+       	action move_up() {
+       	}
+       	
+       	action move_left() {
+       	}
+       	
+       	action move_down() {
+       	}
+       	
+       	action move_right() {
+       	}
+       	
+       	action drop_packet() {
+       	    mark_to_drop(standard_metadata);
+       	}
+       	
+       	table find_next_position {
+       		key = {
+       			hdr.playerAction.player_move	:exact;
+       		}
+       		
+       		actions = {
+       			move_up();
+       			move_left();
+       			move_down();
+       			move_right();
+       			drop_packet();
+       		}
+       		
+       		const default_action = drop_packet();
+       		const entries = {
+       			0x00:	move_up();
+       			0x01:	move_left();
+       			0x02:	move_down();
+       			0x03:	move_right();
+       		}
+    	}
+    	
+    	apply {
+    	find_next_position.apply();
+    	}
+}
 
+// ______________________________   Egress Processing  ______________________________
+
+control WorldEgress(inout headers hdr,
+                    inout metadata meta,
+                    inout standard_metadata_t standard_metadata) {
+    apply { }
+}
+
+// _____________________________   Checksum Computation  _____________________________
+
+control WorldComputeChecksum(inout headers hdr, inout metadata meta) {
+    apply { }
+}
+
+// __________________________________   Deparser   ___________________________________
+
+control WorldDeparser(packet_out packet, in headers hdr) {
+    apply {
+        packet.emit(hdr.ethernet);
+        packet.emit(hdr.playerAction);
+    }
+}
+
+// ___________________________________   Switch   ____________________________________
+
+V1Switch(
+WorldParser(),
+WorldVerifyChecksum(),
+WorldIngress(),
+WorldEgress(),
+WorldComputeChecksum(),
+WorldDeparser(),
+) main;
