@@ -20,7 +20,7 @@
  * -> 2: positive location (e.g. food) - this adds to the score of the player
  * -> 3: negative location (e.g. danger) - this kills the player (removed from world)
  * 
- * The world header is designed like this :
+ * The player header is designed like this :
  *
  * Byte:	0		1		2		3
  *		ID,Move,F0	F1,F2,F3,F4,	F5,F6,F7,F8,	X,Y
@@ -44,3 +44,66 @@
  *
  * The switch, upon receiving a packet, creates, moves or removes players accordingly,
  * before sending back the new coordinates of the player and the fields around it.
+ */
+ 
+#include <core.p4>
+#include <v1model.p4>
+
+// ___________________________________   HEADERS   ___________________________________
+
+//Ethernet Header
+
+header ethernet_t {
+	bit<48> dstAddr;
+	bit<48> srcAddr;
+	bit<16> etherType;
+}
+
+//Player Header
+
+header playerAction_t {
+	bit<4> player_id;
+	bit<2> player_move;
+	bit<2> F0;
+	bit<2> F1;
+	bit<2> F2;
+	bit<2> F3;
+	bit<2> F4;
+	bit<2> F5;
+	bit<2> F6;
+	bit<2> F7;
+	bit<2> F8;
+	bit<4> player_x;
+	bit<4> player_y;
+}
+	
+//Header Struct
+
+struct headers {
+	ethernet_t ethernet;
+	playerAction_t playerAction;
+}
+
+//Metadata Struct
+
+struct metadata {
+	//so much metadata here..
+}
+
+// ___________________________________   Parser   ____________________________________
+
+parser ActionParser(packet_in packet,
+		    out headers hdr,
+		    inout metadata meta,
+		    inout standard_metadata_t standard_metadata) {
+
+	state start{
+		packet.extract(hdr.ethernet);
+		packet.extract(hdr.playerAction);
+		transition accept;
+	}
+}
+
+// ______________________________   Ingress Processing  ______________________________
+
+
