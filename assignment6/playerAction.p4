@@ -116,29 +116,26 @@ control WorldVerifyChecksum(inout headers hdr,
 control WorldIngress(inout headers hdr,
 		     inout metadata meta,
 		     inout standard_metadata_t standard_metadata) {     
-	action switch_dest() {
-    		bit<48> tmp_mac;
-    		tmp_mac = hdr.ethernet.dstAddr;
-       		hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
-       		hdr.ethernet.srcAddr = tmp_mac;
-       	
-       		standard_metadata.egress_spec = standard_metadata.ingress_port;
-       	}
        	//TODO: Get registers worked out then fill up these actions
        	action move_up() {
+       		hdr.playerAction.player_y = 1;
        	}
        	
        	action move_left() {
+       		hdr.playerAction.player_x = 0;
        	}
        	
        	action move_down() {
+       		hdr.playerAction.player_y = 0;
        	}
        	
        	action move_right() {
+       		hdr.playerAction.player_x = 1;
        	}
        	
        	action drop_packet() {
        	    mark_to_drop(standard_metadata);
+       	    
        	}
        	
        	table find_next_position {
@@ -164,7 +161,14 @@ control WorldIngress(inout headers hdr,
     	}
     	
     	apply {
-    	find_next_position.apply();
+    		find_next_position.apply();
+    		
+    		bit<48> tmp_mac;
+    		tmp_mac = hdr.ethernet.dstAddr;
+       		hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
+       		hdr.ethernet.srcAddr = tmp_mac;
+       	
+       		standard_metadata.egress_spec = standard_metadata.ingress_port;
     	}
 }
 
@@ -199,5 +203,5 @@ WorldVerifyChecksum(),
 WorldIngress(),
 WorldEgress(),
 WorldComputeChecksum(),
-WorldDeparser(),
+WorldDeparser()
 ) main;
