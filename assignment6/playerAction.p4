@@ -2,7 +2,7 @@
  * P4 Coordinate World
  * 
  * This program runs the 2D world in which each player moves, storing both the map of
- * positive and negative locations as well as all player locations
+ * positive locations and walls as well as all player locations
  *
  * +-------+-------+-------+
  * |   0   |   1   |   2   |
@@ -17,8 +17,8 @@
  * 
  * -> 0: empty space
  * -> 1: another player - this takes away from the score of the player
- * -> 2: positive location (e.g. food) - this adds to the score of the player
- * -> 3: negative location (e.g. danger) - this kills the player (removed from world)
+ * -> 2: positive location (i.e. food) - this adds to the score of the player
+ * -> 3: wall
  * 
  * The player header is designed like this :
  *
@@ -47,14 +47,37 @@
  * before sending back the new coordinates of the player and the fields around it.
  */
  
+// ___________________________________   SETUP__________________________________
+ 
 #include <core.p4>
 #include <v1model.p4>
 
-//set up map and players in register (16x16 grid laid out in lines)
-//register<bit<2>>(256) map;
+//set up map and players in register
+//map is 16x16 grid laid out in lines -i.e. (0,0), (1,0), (2,0), ... , (15,0), (0,1), (1,1), ...
+
+//           CURRENT MAP
+// 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3		
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3		32-47
+// 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3		16-31
+// 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3		0-15
+
+register<bit<2>>(256) map;
 //register<bit<4>>(15) players_x;
 //register<bit<4>>(15) players_y;
 register<bit<4>>(1) num_of_players;
+
 
 // ___________________________________   HEADERS   ___________________________________
 
@@ -127,15 +150,19 @@ control WorldIngress(inout headers hdr,
        		
        		//initialise player if id is 0 
        		bit<4> player_num;
-       		num_of_players.read(player_num, 1);
+       		num_of_players.read(player_num, 0);
        		if (hdr.playerAction.player_id == 0){ 
        			player_num = player_num + 1;
-       			hdr.playerAction.player_id = player_num;       			
+       			hdr.playerAction.player_id = player_num;     
+       			
+       			//send initialised player to (8,8)
+       			hdr.playerAction.player_x = 8;
+       			hdr.playerAction.player_y = 8;  			
        		}
        		else {
        			hdr.playerAction.player_y = hdr.playerAction.player_y + 1;
        		}
-       		num_of_players.write(1, player_num);
+       		num_of_players.write(0, player_num);
        	}
        	
        	action move_left() {
@@ -178,6 +205,77 @@ control WorldIngress(inout headers hdr,
     	}
     	
     	apply {
+    		
+    		//POPULATE MAP - this is the only place it would work
+    		
+    		//create walls (3)
+		map.write(0,3);//bottom wall
+		map.write(1,3);
+		map.write(2,3);
+		map.write(3,3);
+		map.write(4,3);
+		map.write(5,3);
+		map.write(6,3);
+		map.write(7,3);
+		map.write(8,3);
+		map.write(9,3);
+		map.write(10,3);
+		map.write(11,3);
+		map.write(12,3);
+		map.write(13,3);
+		map.write(14,3);
+		map.write(15,3);
+
+		map.write(240,3);//top wall
+		map.write(241,3);
+		map.write(242,3);
+		map.write(243,3);
+		map.write(244,3);
+		map.write(245,3);
+		map.write(246,3);
+		map.write(247,3);
+		map.write(248,3);
+		map.write(249,3);
+		map.write(250,3);
+		map.write(251,3);
+		map.write(252,3);
+		map.write(253,3);
+		map.write(254,3);
+		map.write(255,3);
+
+		map.write(16,3); //left wall
+		map.write(32,3);
+		map.write(48,3);
+		map.write(64,3);
+		map.write(80,3);
+		map.write(96,3);
+		map.write(112,3);
+		map.write(128,3);
+		map.write(144,3);
+		map.write(160,3);
+		map.write(176,3);
+		map.write(192,3);
+		map.write(208,3);
+		map.write(224,3);
+
+		map.write(31,3); //right wall
+		map.write(47,3);
+		map.write(63,3);
+		map.write(79,3);
+		map.write(95,3);
+		map.write(111,3);
+		map.write(127,3);
+		map.write(143,3);
+		map.write(159,3);
+		map.write(175,3);
+		map.write(191,3);
+		map.write(207,3);
+		map.write(223,3);
+		map.write(239,3);
+
+    		
+    	
+    		//Apply table
     		find_next_position.apply();
     		
     		bit<48> tmp_mac;
@@ -186,6 +284,36 @@ control WorldIngress(inout headers hdr,
        		hdr.ethernet.srcAddr = tmp_mac;
        	
        		standard_metadata.egress_spec = standard_metadata.ingress_port;
+       		
+       		
+       		//set new fields around player
+       		
+       		bit<32> tmp_thing0 = (bit<32>)(hdr.playerAction.player_x) - (bit<32>)1 + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y + (bit<4>)1));
+       		map.read(hdr.playerAction.F0, tmp_thing0);
+       		
+       		bit<32> tmp_thing1 = (bit<32>)(hdr.playerAction.player_x) + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y + (bit<4>)1));
+       		map.read(hdr.playerAction.F1, tmp_thing1);
+       		
+       		bit<32> tmp_thing2 = (bit<32>)(hdr.playerAction.player_x) + (bit<32>)1 + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y + (bit<4>)1));
+       		map.read(hdr.playerAction.F2, tmp_thing2);
+       		
+       		bit<32> tmp_thing3 = (bit<32>)(hdr.playerAction.player_x) - (bit<32>)1 + ((bit<32>)16 * (bit<32>)hdr.playerAction.player_y);
+       		map.read(hdr.playerAction.F3, tmp_thing3);
+       		
+       		bit<32> tmp_thing4 = (bit<32>)(hdr.playerAction.player_x) + ((bit<32>)16 * (bit<32>)hdr.playerAction.player_y);
+       		map.read(hdr.playerAction.F4, tmp_thing4);
+       		
+       		bit<32> tmp_thing5 = (bit<32>)(hdr.playerAction.player_x) + (bit<32>)1 + ((bit<32>)16 * (bit<32>)hdr.playerAction.player_y);
+       		map.read(hdr.playerAction.F5, tmp_thing5);
+       		
+       		bit<32> tmp_thing6 = (bit<32>)(hdr.playerAction.player_x) - (bit<32>)1 + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y - (bit<4>)1));
+       		map.read(hdr.playerAction.F6, tmp_thing6);
+       		
+       		bit<32> tmp_thing7 = (bit<32>)(hdr.playerAction.player_x) + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y - (bit<4>)1));
+       		map.read(hdr.playerAction.F7, tmp_thing7);
+       		
+       		bit<32> tmp_thing8 = (bit<32>)(hdr.playerAction.player_x) + (bit<32>)1 + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y - (bit<4>)1));
+       		map.read(hdr.playerAction.F8, tmp_thing8);
     	}
 }
 

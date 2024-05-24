@@ -6,6 +6,11 @@ y = 0
 ID = 0
 interface = "enx0c37965f8a1c"
 
+up = 0
+left = 0
+down = 0
+right = 0
+
 #Define packet layout
 
 class PlayerAction(Packet):
@@ -36,6 +41,10 @@ def send_packet(move):
 	global ID
 	global x
 	global y
+	global up
+	global left
+	global down
+	global right
 	
 	pkt = Ether(dst = "00:04:00:00:00:00", type = 0x1234) / PlayerAction(player_id = ID,
 									     player_move = move,
@@ -56,6 +65,11 @@ def send_packet(move):
 			ID = playerAction.player_id
 			x = playerAction.player_x
 			y = playerAction.player_y
+			
+			up = playerAction.F1
+			left = playerAction.F3
+			down = playerAction.F7
+			right = playerAction.F5
 			print('id', ID)
 			#TODO: Print fields around player
 			
@@ -81,13 +95,29 @@ if __name__ == "__main__" :
 		
 		match (inp):
 			case "u":
-				send_packet(0)
+				if up == 3:
+					print("Wall is in the way!")
+					pass
+				else:
+					send_packet(0)
 			case "l":
-				send_packet(1)
+				if left == 3:
+					print("Wall is in the way!")
+					pass
+				else:
+					send_packet(1)
 			case "d":
-				send_packet(2)
+				if down == 3:
+					print("Wall is in the way!")
+					pass
+				else:
+					send_packet(2)
 			case "r":
-				send_packet(3)
+				if right == 3:
+					print("Wall is in the way!")
+					pass
+				else:
+					send_packet(3)
 			case _:
 				print("Invalid action.")
 		
