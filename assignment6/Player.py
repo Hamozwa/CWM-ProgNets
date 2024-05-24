@@ -10,6 +10,7 @@ up = 0
 left = 0
 down = 0
 right = 0
+score = 0
 
 #Define packet layout
 
@@ -45,6 +46,7 @@ def send_packet(move):
 	global left
 	global down
 	global right
+	global score
 	
 	pkt = Ether(dst = "00:04:00:00:00:00", type = 0x1234) / PlayerAction(player_id = ID,
 									     player_move = move,
@@ -71,7 +73,6 @@ def send_packet(move):
 			down = playerAction.F7
 			right = playerAction.F5
 			print('id', ID)
-			#TODO: Print fields around player
 			
 			print(" +-------+-------+-------+")
 			print(" |   {}   |   {}   |   {}   |".format(playerAction.F0,playerAction.F1,playerAction.F2))
@@ -80,6 +81,7 @@ def send_packet(move):
 			print(" +-------+-------+-------+")
 			print(" |   {}   |   {}   |   {}   |".format(playerAction.F6,playerAction.F7,playerAction.F8))
 			print(" +-------+-------+-------+")
+			print("score: " +str(score))
 		else:
 		
 			print("player header not found in packet")
@@ -98,26 +100,38 @@ if __name__ == "__main__" :
 				if up == 3:
 					print("Wall is in the way!")
 					pass
-				else:
-					send_packet(0)
+				elif up == 2:
+					score = score + 1
+				elif up == 1:
+					score = score - 1
+				send_packet(0)
 			case "l":
 				if left == 3:
 					print("Wall is in the way!")
 					pass
-				else:
-					send_packet(1)
+				elif left == 2:
+					score = score + 1
+				elif left == 1:
+					score = score - 1
+				send_packet(1)
 			case "d":
 				if down == 3:
 					print("Wall is in the way!")
 					pass
-				else:
-					send_packet(2)
+				elif down == 2:
+					score = score + 1
+				elif down == 1:
+					score = score - 1
+				send_packet(2)
 			case "r":
 				if right == 3:
 					print("Wall is in the way!")
 					pass
-				else:
-					send_packet(3)
+				elif right == 2:
+					score = score + 1
+				elif score == 1:
+					score = score - 1
+				send_packet(3)
 			case _:
 				print("Invalid action.")
 		

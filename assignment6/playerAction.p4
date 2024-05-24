@@ -1,8 +1,8 @@
 /*
  * P4 Coordinate World
  * 
- * This program runs the 2D world in which each player moves, storing both the map of
- * positive locations and walls as well as all player locations
+ * This program runs a multiplayer 2D world where each player tells the switch where it
+ * is going next and is then told about the squares around it.
  *
  * +-------+-------+-------+
  * |   0   |   1   |   2   |
@@ -18,7 +18,7 @@
  * -> 0: empty space
  * -> 1: another player - this takes away from the score of the player
  * -> 2: positive location (i.e. food) - this adds to the score of the player
- * -> 3: wall
+ * -> 3: wall - cannot move into this space
  * 
  * The player header is designed like this :
  *
@@ -43,7 +43,7 @@
  * Y (4 bits)
  *   -> indicates y coordinate of player 
  *
- * The switch, upon receiving a packet, creates, moves or removes players accordingly,
+ * The switch, upon receiving a packet, creates or moves players accordingly,
  * before sending back the new coordinates of the player and the fields around it.
  */
  
@@ -74,8 +74,6 @@
 // 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3		0-15
 
 register<bit<2>>(256) map;
-//register<bit<4>>(15) players_x;
-//register<bit<4>>(15) players_y;
 register<bit<4>>(1) num_of_players;
 
 
@@ -170,7 +168,19 @@ control WorldIngress(inout headers hdr,
        	}
        	
        	action move_down() {
-       		hdr.playerAction.player_y = hdr.playerAction.player_y - 1;
+       		
+       		//spawn food packet if id is 0, otherwise set a wall to a wall (write can't be in conditional if block)
+       		bit<32> tmp_food_location = 0;
+       		bit<2> tmp_food_value = 3;
+       		if (hdr.playerAction.player_id == 0){ 
+       			tmp_food_value = 2;
+       			tmp_food_location = (bit<32>)(hdr.playerAction.player_x) + ((bit<32>)16 * (bit<32>)hdr.playerAction.player_y);
+       		}
+       		else {
+       			hdr.playerAction.player_y = hdr.playerAction.player_y - 1;
+       			tmp_food_location = 0;
+       		}
+       		map.write(tmp_food_location, tmp_food_value);
        	}
        	
        	action move_right() {
@@ -273,7 +283,10 @@ control WorldIngress(inout headers hdr,
 		map.write(223,3);
 		map.write(239,3);
 
+    		//Set player's current location as empty
     		
+    		bit<32> tmp_empty_space = (bit<32>)(hdr.playerAction.player_x) + ((bit<32>)16 * (bit<32>)hdr.playerAction.player_y);
+    		map.write(tmp_empty_space, 0);
     	
     		//Apply table
     		find_next_position.apply();
@@ -314,6 +327,22 @@ control WorldIngress(inout headers hdr,
        		
        		bit<32> tmp_thing8 = (bit<32>)(hdr.playerAction.player_x) + (bit<32>)1 + ((bit<32>)16 * (bit<32>)(hdr.playerAction.player_y - (bit<4>)1));
        		map.read(hdr.playerAction.F8, tmp_thing8);
+       		
+       		//Set player's new location as a player-filled space
+       		
+       		bit<32> tmp_filled_space = (bit<32>)(hdr.playerAction.player_x) + ((bit<32>)16 * (bit<32>)hdr.playerAction.player_y);
+       		bit<2> tmp_packet_value = 1;
+       		
+       		//IF FOOD:
+    		if (hdr.playerAction.player_id == 0) {
+    			if (hdr.playerAction.player_move == 2) {
+    				tmp_packet_value = 2;
+    			} 
+    		
+    		}
+    		map.write(tmp_filled_space, tmp_packet_value);
+    		
+       		
     	}
 }
 
