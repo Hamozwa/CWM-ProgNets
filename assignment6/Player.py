@@ -30,13 +30,18 @@ class PlayerAction(Packet):
 bind_layers(Ether, PlayerAction, type = 0x1234)
 
 def initialise():
-	#TODO: Initialise player
-	pass
+	send_packet(0)
 
 def send_packet(move):
+	global ID
+	global x
+	global y
 	
-	#global playerAction
-	pkt = Ether(dst = "00:04:00:00:00:00", type = 0x1234) / PlayerAction(player_move = move)
+	pkt = Ether(dst = "00:04:00:00:00:00", type = 0x1234) / PlayerAction(player_id = ID,
+									     player_move = move,
+									     player_x = x,
+									     player_y = y
+									     )
 	
 	#send and receive packet to p4 file
 	resp = srp1(pkt,
@@ -48,8 +53,21 @@ def send_packet(move):
 		playerAction = resp[PlayerAction]
 		if playerAction:
 			print('x', playerAction.player_x, ', y', playerAction.player_y)
+			ID = playerAction.player_id
+			x = playerAction.player_x
+			y = playerAction.player_y
+			print('id', ID)
 			#TODO: Print fields around player
+			
+			print(" +-------+-------+-------+")
+			print(" |   {}   |   {}   |   {}   |".format(playerAction.F0,playerAction.F1,playerAction.F2))
+			print(" +-------+-------+-------+")
+			print(" |   {}   |  You  |   {}   |".format(playerAction.F3,playerAction.F5))
+			print(" +-------+-------+-------+")
+			print(" |   {}   |   {}   |   {}   |".format(playerAction.F6,playerAction.F7,playerAction.F8))
+			print(" +-------+-------+-------+")
 		else:
+		
 			print("player header not found in packet")
 
 if __name__ == "__main__" :

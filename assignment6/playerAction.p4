@@ -28,6 +28,7 @@
  * ID (4 bits)
  *   -> indicates which player is making the move
  *   -> For initialisation, player sends ID 0 and then is assigned back an ID
+ *   -> Max. 15 players
  *
  * Move (2 bits)
  *   -> indicates where the player decides to move
@@ -48,6 +49,12 @@
  
 #include <core.p4>
 #include <v1model.p4>
+
+//set up map and players in register (16x16 grid laid out in lines)
+//register<bit<2>>(256) map;
+//register<bit<4>>(15) players_x;
+//register<bit<4>>(15) players_y;
+register<bit<4>>(1) num_of_players;
 
 // ___________________________________   HEADERS   ___________________________________
 
@@ -116,21 +123,31 @@ control WorldVerifyChecksum(inout headers hdr,
 control WorldIngress(inout headers hdr,
 		     inout metadata meta,
 		     inout standard_metadata_t standard_metadata) {     
-       	//TODO: Get registers worked out then fill up these actions
        	action move_up() {
-       		hdr.playerAction.player_y = 1;
+       		
+       		//initialise player if id is 0 
+       		bit<4> player_num;
+       		num_of_players.read(player_num, 1);
+       		if (hdr.playerAction.player_id == 0){ 
+       			player_num = player_num + 1;
+       			hdr.playerAction.player_id = player_num;       			
+       		}
+       		else {
+       			hdr.playerAction.player_y = hdr.playerAction.player_y + 1;
+       		}
+       		num_of_players.write(1, player_num);
        	}
        	
        	action move_left() {
-       		hdr.playerAction.player_x = 0;
+       		hdr.playerAction.player_x = hdr.playerAction.player_x - 1;
        	}
        	
        	action move_down() {
-       		hdr.playerAction.player_y = 0;
+       		hdr.playerAction.player_y = hdr.playerAction.player_y - 1;
        	}
        	
        	action move_right() {
-       		hdr.playerAction.player_x = 1;
+       		hdr.playerAction.player_x = hdr.playerAction.player_x + 1;
        	}
        	
        	action drop_packet() {
